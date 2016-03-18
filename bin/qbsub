@@ -103,11 +103,13 @@ $@
 EOF
 
 if [[ $VERBOSE == true ]]; then
-    echo "qsub command:"
-    echo "  qsub $OPTS"
-    echo ""
-    echo "wrapper script:"
-    echo "$SCRIPT"
+    cat <<- EOF
+qsub command:
+  qsub $OPTS
+
+wrapper script:
+$SCRIPT
+EOF
 fi
 
 echo "$SCRIPT" | qsub $OPTS
