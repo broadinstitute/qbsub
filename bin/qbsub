@@ -1,0 +1,113 @@
+#!/bin/bash
+read -d '' usage <<- EOF
+Replacement for qsub to make it behave more rationally and similar to bsub.
+
+In addition to adding -cwd and -V by default (passing current working directory
+and environment variables), also by default joins stdout and stderr files if
+only a -o option is specified. If you want separate stdout and stderr, simply
+add the -e option.
+
+The dotkits of the local environment are 'reuse'd at the beginning of the
+wrapper script sent to qsub, in the same order as locally loaded. This can be
+disabled with --nouse.
+
+Use --verbose to see the qsub command and accompanying wrapper script.
+
+All other arguments are passed through to qsub.
+
+Usage:
+  qbsub -q short python test.py
+
+Options:
+  -n: Number of processors - equivalent -pe smp
+  --nocwd: Don't pass -cwd
+  --noenv: Don't pass -V
+  --nouse: Don't reuse dotkits from current environment
+  --verbose: Print out qsub command and generated wrapper script
+  --help: Print the message
+  *: Other commands same as qsub
+
+Environment Variables:
+  DK_INIT: The path of the dotkit init script - required.
+  QBSUB_PROJECT_NAME: Project name to pass to qsub. Can be overriden by the -P
+    option.
+EOF
+
+source "$DK_INIT"
+OPTS=
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help ) echo >&2 "$usage"; exit 1;;
+        -o ) STDOUT_PATH="$2"; shift 2 ;;
+        -e ) STDERR_PATH="$2"; shift 2 ;;
+        -j ) JOIN_OUTPUT="$2"; shift 2 ;;
+        -pe ) OPTS+=" -pe $2 $3"; shift 3 ;;
+        -q ) OPTS+=" -q $2"; shift 2 ;;
+        -p ) OPTS+=" -p $2"; shift 2 ;;
+        -P ) PROJECT_NAME="$2"; shift 2 ;;
+        -r ) OPTS+=" -r $2"; shift 2 ;;
+        -l ) OPTS+=" -l $2"; shift 2 ;;
+        -N ) OPTS+=" -N $2"; shift 2 ;;
+        -m ) OPTS+=" -m $2"; shift 2 ;;
+        -M ) OPTS+=" -M $2"; shift 2 ;;
+        -v ) OPTS+=" -v $2"; shift 2 ;;
+        -h ) OPTS+=" -h"; shift ;;
+        -n ) OPTS+=" -pe smp $2"; shift 2;;
+        --nocwd ) NO_CWD=1; shift ;;
+        --noenv ) NO_ENV=1; shift ;;
+        --nouse ) NO_USE=1; shift ;;
+        --verbose ) VERBOSE=true; shift ;;
+        -- ) shift ; break ;;
+        * ) break ;;
+    esac
+done
+
+# Check options
+if [[ -z "$STDOUT_PATH" ]]; then
+    echo >&2 "No job output path specified (-o output.txt)"
+    exit 1
+fi
+
+# Set project name by -P, then env var QBSUB_PROJECT_NAME
+PROJECT_NAME=${PROJECT_NAME:=$QBSUB_PROJECT_NAME}
+[[ -n "$PROJECT_NAME" ]] && OPTS+=" -P $PROJECT_NAME"
+
+REUSES=
+# Only get top level used dotkits, including hidden dotkits.
+# dk_alias comamnds don't respect -q so pipe stderr to /dev/null
+if [[ -z "$NO_USE" ]]; then
+    REUSES=$(use -a | sed -e '0,/^Packages in use:$/d' -e 's/^  //' -e '/^  /d'  \
+                    | tac \
+                    | sed -e '/^$/d' -e 's/^[[:space:]]*/reuse -q /' -e 's#$# 2> /dev/null#')
+fi
+
+[[ -z "$NO_CWD" ]] && OPTS+=" -cwd"
+[[ -z "$NO_ENV" ]] && OPTS+=" -V"
+
+OPTS+=" -o $STDOUT_PATH"
+[[ -n "$STDERR_PATH" ]] && OPTS+=" -e $STDERR_PATH"
+[[ -z "$JOIN_OUTPUT" && -z "$STDERR_PATH" ]] && JOIN_OUTPUT=y
+[[ -n "$JOIN_OUTPUT" ]] && OPTS+=" -j $JOIN_OUTPUT"
+
+# Stop qsub complaining - it will scrub it anyways.
+unset LD_LIBRARY_PATH
+
+read -d '' SCRIPT << EOF
+#!/bin/bash
+source $DK_INIT
+
+$REUSES
+
+$@
+EOF
+
+if [[ $VERBOSE == true ]]; then
+    echo "qsub command:"
+    echo "  qsub $OPTS"
+    echo ""
+    echo "wrapper script:"
+    echo "$SCRIPT"
+fi
+
+echo "$SCRIPT" | qsub $OPTS
