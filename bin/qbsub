@@ -47,7 +47,9 @@ while [[ $# -gt 0 ]]; do
         -q ) OPTS+=" -q $2"; shift 2 ;;
         -p ) OPTS+=" -p $2"; shift 2 ;;
         -P ) PROJECT_NAME="$2"; shift 2 ;;
+        -ar ) OPTS+=" -ar $2"; shift 2 ;;
         -r ) OPTS+=" -r $2"; shift 2 ;;
+        -R ) OPTS+=" -R $2"; shift 2 ;;
         -l ) OPTS+=" -l $2"; shift 2 ;;
         -N ) OPTS+=" -N $2"; shift 2 ;;
         -m ) OPTS+=" -m $2"; shift 2 ;;
