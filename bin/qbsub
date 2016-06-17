@@ -23,6 +23,8 @@ Options:
   --nocwd: Don't pass -cwd
   --noenv: Don't pass -V
   --nouse: Don't reuse dotkits from current environment
+  --nonotify: Don't apply the -notify flag which sends SIGUSR2 before jobs are
+    killed (aka send SIGKILL directly on qdel)
   --verbose: Print out qsub command and generated wrapper script
   --help: Print the message
   *: Other commands same as qsub
@@ -57,6 +59,7 @@ while [[ $# -gt 0 ]]; do
         -v ) OPTS+=" -v $2"; shift 2 ;;
         -h ) OPTS+=" -h"; shift ;;
         -n ) NPROC="$2"; shift 2;;
+        --nonotify ) NO_NOTIFY=1; shift ;;
         --nocwd ) NO_CWD=1; shift ;;
         --noenv ) NO_ENV=1; shift ;;
         --nouse ) NO_USE=1; shift ;;
@@ -90,6 +93,7 @@ fi
 
 [[ -z "$NO_CWD" ]] && OPTS+=" -cwd"
 [[ -z "$NO_ENV" ]] && OPTS+=" -V"
+[[ -z "$NO_NOTIFY" ]] && OPTS+=" -notify"
 
 OPTS+=" -o $STDOUT_PATH"
 [[ -n "$STDERR_PATH" ]] && OPTS+=" -e $STDERR_PATH"
