@@ -59,6 +59,7 @@ while [[ $# -gt 0 ]]; do
         -v ) OPTS+=" -v $2"; shift 2 ;;
         -h ) OPTS+=" -h"; shift ;;
         -n ) NPROC="$2"; shift 2;;
+        --profile ) PROFILE=1; shift ;;
         --nonotify ) NO_NOTIFY=1; shift ;;
         --nocwd ) NO_CWD=1; shift ;;
         --noenv ) NO_ENV=1; shift ;;
@@ -103,7 +104,8 @@ OPTS+=" -o $STDOUT_PATH"
 # Stop qsub complaining - it will scrub it anyways.
 unset LD_LIBRARY_PATH
 
-read -d '' SCRIPT << EOF
+if [[ -z "$PROFILE" ]]; then
+    read -d '' SCRIPT << EOF
 #!/bin/bash
 source $DK_INIT
 
@@ -111,6 +113,57 @@ $REUSES
 
 $@
 EOF
+
+fi
+
+if [[ -n "$PROFILE" ]]; then
+
+    read -d '' SCRIPT << EOF
+#!/bin/bash
+source $DK_INIT
+
+$REUSES
+
+TIME_RES=\$(mktemp)
+function finish {
+    # Report resource consumption because it's not reported by default
+    echo "================================================================================"
+    qstat -j \$JOB_ID | egrep '^exec_host_list|^granted_req|^usage'
+    cat "\$TIME_RES" 2> /dev/null
+    rm "\$TIME_RES"
+    echo "--------------------------------------------------------------------------------"
+}
+
+function list_descendants {
+    local children=\$(ps -o pid= --ppid "\$1")
+
+    for pid in \$children
+    do
+        list_descendants "\$pid"
+    done
+
+    echo "\$children"
+}
+
+function handle_qdel {
+    echo "Killed by qdel"
+    kill \$(list_descendants \$\$)
+}
+
+trap handle_qdel USR2
+trap finish EXIT
+
+echo "JOBID	\$JOB_ID"
+echo "CPU	\$(cat /proc/cpuinfo | grep 'model name' | head -n 1)"
+echo "================================================================================"
+
+/usr/bin/time -o "\$TIME_RES" -v /bin/bash -c "$@" &
+PID=\$!
+wait
+
+EOF
+
+fi
 
 if [[ $VERBOSE == true ]]; then
     cat <<- EOF
