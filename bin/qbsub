@@ -59,6 +59,7 @@ while [[ $# -gt 0 ]]; do
         -v ) OPTS+=" -v $2"; shift 2 ;;
         -h ) OPTS+=" -h"; shift ;;
         -n ) NPROC="$2"; shift 2;;
+        -hold_jid ) OPTS+=" -hold_jid $2"; shift 2 ;;
         --profile ) PROFILE=1; shift ;;
         --nonotify ) NO_NOTIFY=1; shift ;;
         --nocwd ) NO_CWD=1; shift ;;
@@ -81,7 +82,7 @@ PROJECT_NAME=${PROJECT_NAME:=$QBSUB_PROJECT_NAME}
 [[ -n "$PROJECT_NAME" ]] && OPTS+=" -P $PROJECT_NAME"
 
 # Set pe opts for -n if necessary
-[[ -n "$NPROC" ]] && OPTS+=" -pe $QBSUB_PE $NPROC"
+[[ -n "$NPROC" ]] && OPTS+=" -pe $QBSUB_PE $NPROC -binding linear:$NPROC"
 
 REUSES=
 # Only get top level used dotkits, including hidden dotkits.
