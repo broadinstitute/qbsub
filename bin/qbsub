@@ -57,6 +57,7 @@ while [[ $# -gt 0 ]]; do
         -N ) OPTS+=" -N $2"; shift 2 ;;
         -m ) OPTS+=" -m $2"; shift 2 ;;
         -M ) OPTS+=" -M $2"; shift 2 ;;
+        -w ) VALIDATION="$2"; shift 2 ;;
         -v ) OPTS+=" -v $2"; shift 2 ;;
         -h ) OPTS+=" -h"; shift ;;
         -n ) NPROC="$2"; shift 2;;
@@ -85,6 +86,10 @@ PROJECT_NAME=${PROJECT_NAME:=$QBSUB_PROJECT_NAME}
 
 # Set pe opts for -n if necessary
 [[ -n "$NPROC" ]] && OPTS+=" -pe $QBSUB_PE $NPROC -binding linear:$NPROC"
+
+# Set validation level to error by default
+VALIDATION=${VALIDATION:=e}
+[[ -n "$VALIDATION" ]] && OPTS+=" -w $VALIDATION"
 
 REUSES=
 # Only get top level used dotkits, including hidden dotkits.
