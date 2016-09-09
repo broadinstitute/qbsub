@@ -25,6 +25,7 @@ Options:
   --nouse: Don't reuse dotkits from current environment
   --nonotify: Don't apply the -notify flag which sends SIGUSR2 before jobs are
     killed (aka send SIGKILL directly on qdel)
+  --profile: Profile cpu/mem usage and log jobid/host info.
   --verbose: Print out qsub command and generated wrapper script
   --help: Print the message
   *: Other commands same as qsub
@@ -60,6 +61,7 @@ while [[ $# -gt 0 ]]; do
         -h ) OPTS+=" -h"; shift ;;
         -n ) NPROC="$2"; shift 2;;
         -hold_jid ) OPTS+=" -hold_jid $2"; shift 2 ;;
+        -binding ) OPTS+=" -binding $2"; shift 2 ;;
         --profile ) PROFILE=1; shift ;;
         --nonotify ) NO_NOTIFY=1; shift ;;
         --nocwd ) NO_CWD=1; shift ;;
@@ -152,6 +154,7 @@ function handle_qdel {
 }
 
 trap handle_qdel USR2
+trap handle_qdel TERM
 trap finish EXIT
 
 echo "JOBID	\$JOB_ID"
