@@ -5,11 +5,20 @@ Replacement for qsub to make it behave more rationally and similar to bsub.
 In addition to adding -cwd and -V by default (passing current working directory
 and environment variables), also by default joins stdout and stderr files if
 only a -o option is specified. If you want separate stdout and stderr, simply
-add the -e option.
+add the -e option. It also sets the job validation level to error by default,
+which is equivalent to '-w e'.
 
 The dotkits of the local environment are 'reuse'd at the beginning of the
 wrapper script sent to qsub, in the same order as locally loaded. This can be
 disabled with --nouse.
+
+The convenience argument -n for number of processors will automatically set the
+multicore arguments -pe $QSUB_PE n -binding linear:n.
+
+The --profile option will prepend your job logs with host information before job
+execution and append resource utilization data at the conclusion of your job.
+This is useful to keep track of things like cpu utilization and maximum memory
+used during the course of the job.
 
 Use --verbose to see the qsub command and accompanying wrapper script.
 
@@ -19,7 +28,7 @@ Usage:
   qbsub -q short python test.py
 
 Options:
-  -n: Number of processors - equivalent to -pe $QSUB_PE
+  -n: Number of processors - equivalent to -pe $QSUB_PE n -binding linear:n
   --nocwd: Don't pass -cwd
   --noenv: Don't pass -V
   --nouse: Don't reuse dotkits from current environment

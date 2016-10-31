@@ -14,6 +14,14 @@ The dotkits of the local environment are 'reuse'd at the beginning of the
 wrapper script sent to qsub, in the same order as locally loaded. This can be
 disabled with `--nouse`.
 
+The convenience argument -n for number of processors will automatically set the
+multicore arguments `-pe $QSUB_PE n -binding linear:n`.
+
+The `--profile` option will prepend your job logs with host information before job
+execution and append resource utilization data at the conclusion of your job.
+This is useful to keep track of things like cpu utilization and maximum memory
+used during the course of the job.
+
 Use `--verbose` to see the qsub command and accompanying wrapper script.
 
 All other arguments are passed through to qsub.
@@ -29,6 +37,9 @@ Options
 --nocwd: Don't pass -cwd
 --noenv: Don't pass -V
 --nouse: Don't reuse dotkits from current environment
+--nonotify: Don't apply the -notify flag which sends SIGUSR2 before jobs are
+  killed (aka send SIGKILL directly on qdel)
+--profile: Profile cpu/mem usage and log jobid/host info.
 --verbose: Print out qsub command and generated wrapper script
 --help: Print the message
 *: Other commands same as qsub
