@@ -176,8 +176,7 @@ echo "CPU	\$(cat /proc/cpuinfo | grep 'model name' | head -n 1)"
 echo "================================================================================"
 
 /usr/bin/time -o "\$TIME_RES" -v /bin/bash -c "$@" &
-PID=\$!
-wait
+wait \$!
 
 EOF
 
